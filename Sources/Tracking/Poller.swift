@@ -31,11 +31,19 @@ final class Poller: ObservableObject {
     private let settings: AppSettings
     private let idle = IdleMonitor()
 
+    /// How long the clock keeps running on the last tracked site while ChessTime
+    /// itself is frontmost. Long enough to read the note or flip a setting,
+    /// short enough that leaving the app open isn't counted as chess.
+    private static let ownAppGrace: TimeInterval = 60
+
     private var timer: Timer?
     private var lastSample: Date?
     private var deniedBundleIDs: Set<String> = []
     /// Guards against a slow browser letting two lookups overlap.
     private var lookupInFlight = false
+    /// When a tracked site was last confirmed in a browser, which bounds the
+    /// grace period above.
+    private var lastConfirmedTracking: Date = .distantPast
 
     /// `activity` is injectable so previews and tests can render the live state
     /// without a browser, a permission grant, or a five-second wait.
@@ -70,6 +78,12 @@ final class Poller: ObservableObject {
 
     private func tick() {
         let now = Date()
+
+        // Bail *before* advancing the clock. Returning after moving lastSample
+        // would silently discard this interval; rolling it into the next tick
+        // means a slow browser costs accuracy only if it exceeds the clamp.
+        guard !lookupInFlight else { return }
+
         // Clamp so a suspended timer (sleep, heavy load) can never dump a huge
         // block of time onto whatever happens to be frontmost on wake.
         let elapsed = min(now.timeIntervalSince(lastSample ?? now), Self.interval * 2)
@@ -83,14 +97,28 @@ final class Poller: ObservableObject {
             return
         }
 
-        guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+        let frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+
+        // Looking at the note must not stop the clock. Clicking it activates
+        // ChessTime, so without this, checking the timer pauses the timer —
+        // and every glance quietly cost you time on the tracked site.
+        if frontmostBundleID == Bundle.main.bundleIdentifier {
+            if case .tracking(let domain) = activity,
+               now.timeIntervalSince(lastConfirmedTracking) < Self.ownAppGrace {
+                store.add(seconds: elapsed, to: domain)
+            } else {
+                activity = .idleElsewhere
+            }
+            return
+        }
+
+        guard let bundleID = frontmostBundleID,
               let browser = Browser.known(bundleID: bundleID)
         else {
             activity = .idleElsewhere
             return
         }
 
-        guard !lookupInFlight else { return }
         lookupInFlight = true
 
         BrowserBridge.activeTabURL(for: browser) { [weak self] result in
@@ -104,6 +132,7 @@ final class Poller: ObservableObject {
                                                           in: self.settings.trackedSites) {
                     self.store.add(seconds: elapsed, to: domain)
                     self.activity = .tracking(domain: domain)
+                    self.lastConfirmedTracking = Date()
                 } else {
                     self.activity = .idleElsewhere
                 }

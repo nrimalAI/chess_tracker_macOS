@@ -35,6 +35,22 @@ struct PanelView: View {
         return nil
     }
 
+    private var statusLabel: String {
+        switch poller.activity {
+        case .tracking: return "counting now"
+        case .away: return "paused · away"
+        case .idleElsewhere: return "today"
+        }
+    }
+
+    private var statusColor: AnyShapeStyle {
+        switch poller.activity {
+        case .tracking: return AnyShapeStyle(Color.green)
+        case .away: return AnyShapeStyle(Color.orange.opacity(0.85))
+        case .idleElsewhere: return AnyShapeStyle(.tertiary)
+        }
+    }
+
     private var headline: String {
         if settings.trackedSites.count == 1 {
             return settings.trackedSites[0]
@@ -105,10 +121,11 @@ struct PanelView: View {
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
             // The number is always today's total; the label doubles as the
-            // plainest possible statement of whether the clock is moving.
-            Text(isLive ? "counting now" : "today")
+            // plainest possible statement of whether the clock is moving, and
+            // says *why* when it isn't — otherwise a pause looks like a bug.
+            Text(statusLabel)
                 .font(.system(size: 10, weight: isLive ? .semibold : .medium))
-                .foregroundStyle(isLive ? AnyShapeStyle(Color.green) : AnyShapeStyle(.tertiary))
+                .foregroundStyle(statusColor)
                 .textCase(.uppercase)
                 .tracking(0.6)
         }

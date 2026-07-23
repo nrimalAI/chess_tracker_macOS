@@ -128,7 +128,10 @@ final class AppSettings: ObservableObject {
         self.defaults = defaults
         defaults.register(defaults: [
             Key.trackedSites: ["chess.com"],
-            Key.idleThreshold: 120.0,
+            // Five minutes, not two: thinking through a chess position involves
+            // no keyboard or mouse input at all, and a two-minute cutoff quietly
+            // discarded real usage.
+            Key.idleThreshold: 300.0,
             Key.panelLevel: PanelLevel.normal.rawValue,
             Key.panelOpacity: 0.92,
             Key.showsWeekChart: true,
