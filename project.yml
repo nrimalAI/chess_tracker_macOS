@@ -1,0 +1,58 @@
+name: ChessTime
+
+options:
+  bundleIdPrefix: com.chesstime
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    DEAD_CODE_STRIPPING: YES
+    # Ad-hoc ("Sign to Run Locally"). Building and running needs no Apple
+    # Developer account at all. To ship a notarized build, set DEVELOPMENT_TEAM
+    # and CODE_SIGN_IDENTITY to "Developer ID Application" in the Release config
+    # below — see Scripts/release.sh.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+  configs:
+    Debug:
+      # The hardened runtime is a notarization requirement, not a dev one, and
+      # it fights ad-hoc signing during development.
+      ENABLE_HARDENED_RUNTIME: NO
+    Release:
+      ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  ChessTime:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chesstime.ChessTime
+        PRODUCT_NAME: ChessTime
+        INFOPLIST_FILE: Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Resources/ChessTime.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+        ENABLE_APP_SANDBOX: NO
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+schemes:
+  ChessTime:
+    build:
+      targets:
+        ChessTime: all
+    run:
+      config: Debug
+    archive:
+      config: Release

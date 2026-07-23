@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Not sandboxed: sending Apple Events to arbitrary browsers requires a
+	     temporary-exception entitlement under the sandbox that Apple routinely
+	     rejects. ChessTime ships outside the Mac App Store instead. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+	<!-- Required under the hardened runtime to send Apple Events at all. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>
